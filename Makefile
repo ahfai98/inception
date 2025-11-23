@@ -13,7 +13,7 @@ export COMPOSE_FILE
 
 #build images and containers
 up: create_dirs
-	docker compose up --build
+	docker compose up --build -d
 
 #stops containers, removes containers, volumes and networks
 down:

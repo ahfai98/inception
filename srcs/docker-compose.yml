@@ -1,0 +1,19 @@
+services:
+  mariadb:
+    build:  ./requirements/mariadb/
+    env_file: .env
+    restart: always
+    expose:
+      - "3306"
+    volumes:
+      - mariadb:/var/lib/mysql
+    container_name: mariadb
+
+volumes:
+  mariadb:
+    name: mariadb
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/jyap/data/mariadb
