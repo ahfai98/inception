@@ -9,6 +9,17 @@ services:
       - mariadb:/var/lib/mysql
     container_name: mariadb
 
+  wordpress:
+    build:  ./requirements/wordpress/
+    env_file: .env
+    restart: always
+    expose:
+      - "9000"
+    volumes:
+      - wordpress:/var/www/html/wordpress
+    container_name: wordpress
+  
+
 volumes:
   mariadb:
     name: mariadb
@@ -17,3 +28,10 @@ volumes:
       type: none
       o: bind
       device: /home/jyap/data/mariadb
+  wordpress:
+    name: wordpress
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/jyap/data/wordpress

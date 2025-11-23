@@ -1,8 +1,25 @@
 #!/bin/bash
 
 WP_PATH="/var/www/html/wordpress"
+DB_HOST="${DB_HOST:-mariadb}"
+WAIT_TIMEOUT="${WAIT_TIMEOUT:-60}"  # max wait time in seconds
 
-echo "[INFO] Ensuring WordPress directory exists..."
+echo "[INFO] Waiting for MariaDB at $DB_HOST to be ready..."
+
+SECONDS_WAITED=0
+until mysqladmin ping -h "$DB_HOST" --silent; do
+    if [ $SECONDS_WAITED -ge $WAIT_TIMEOUT ]; then
+        echo "[ERROR] MariaDB did not become ready after $WAIT_TIMEOUT seconds."
+        exit 1
+    fi
+    echo "[INFO] MariaDB not ready yet, sleeping 2 seconds..."
+    sleep 2
+    SECONDS_WAITED=$((SECONDS_WAITED + 2))
+done
+
+echo "[INFO] MariaDB is up. Continuing WordPress setup..."
+
+# Ensure WordPress directory exists
 mkdir -p "$WP_PATH"
 
 if [ -z "$(ls -A $WP_PATH)" ]; then
@@ -17,7 +34,7 @@ if [ -z "$(ls -A $WP_PATH)" ]; then
         --dbname="$DB_NAME" \
         --dbuser="$DB_USER" \
         --dbpass="$DB_USER_PASSWORD" \
-        --dbhost="mariadb" \
+        --dbhost="$DB_HOST" \
         --skip-check \
         --allow-root
 
@@ -37,10 +54,7 @@ if [ -z "$(ls -A $WP_PATH)" ]; then
         --role=author \
         --allow-root
 
-    echo "[INFO] Installing TwentyTwentyTwo theme..."
-
     echo "[INFO] WordPress bootstrap complete."
-
 else
     echo "[INFO] WordPress directory already contains files. Skipping installation."
 fi
