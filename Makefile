@@ -19,7 +19,7 @@ up: create_dirs
 down:
 	docker compose down -v
 
-#builds images only
+#builds images only, does not start containers
 build:
 	docker compose build
 
@@ -41,10 +41,10 @@ re: fclean up
 create_dirs:
 	mkdir -p $(MARIADB_DIR) $(WORDPRESS_DIR)
 
-mariadb:
+mariadb: create_dirs
 	docker compose up -d --build mariadb
 
-wordpress:
+wordpress: create_dirs
 	docker compose up -d --build wordpress
 
 stop-mariadb:
@@ -53,11 +53,11 @@ stop-mariadb:
 stop-wordpress:
 	docker compose stop wordpress
 
-rebuild-mariadb:
+rebuild-mariadb: create_dirs
 	docker compose build mariadb
 	docker compose up -d mariadb
 
-rebuild-wordpress:
+rebuild-wordpress: create_dirs
 	docker compose build wordpress
 	docker compose up -d wordpress
 
