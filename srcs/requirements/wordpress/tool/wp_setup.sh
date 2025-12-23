@@ -30,13 +30,15 @@ if [ -z "$(ls -A $WP_PATH)" ]; then
     wp core download --allow-root
 
     echo "[INFO] Creating wp-config.php..."
-    wp config create \
-        --dbname="$DB_NAME" \
-        --dbuser="$DB_USER" \
-        --dbpass="$DB_USER_PASSWORD" \
-        --dbhost="$DB_HOST" \
-        --skip-check \
-        --allow-root
+    if [ ! -f wp-config.php ]; then
+        wp config create \
+            --dbname="$DB_NAME" \
+            --dbuser="$DB_USER" \
+            --dbpass="$DB_USER_PASSWORD" \
+            --dbhost="$DB_HOST" \
+            --skip-check \
+            --allow-root
+    fi
 
     echo "[INFO] Installing WordPress..."
     wp core install \

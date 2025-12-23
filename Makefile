@@ -23,6 +23,9 @@ down:
 build:
 	docker compose build
 
+restart:
+	docker compose restart
+
 #stops containers, deletes images and volumes, and removes orphan containers
 #deletes bind-mounted folders
 clean:
@@ -37,5 +40,40 @@ re: fclean up
 
 create_dirs:
 	mkdir -p $(MARIADB_DIR) $(WORDPRESS_DIR)
+
+mariadb:
+	docker compose up -d --build mariadb
+
+wordpress:
+	docker compose up -d --build wordpress
+
+stop-mariadb:
+	docker compose stop mariadb
+
+stop-wordpress:
+	docker compose stop wordpress
+
+rebuild-mariadb:
+	docker compose build mariadb
+	docker compose up -d mariadb
+
+rebuild-wordpress:
+	docker compose build wordpress
+	docker compose up -d wordpress
+
+logs:
+	docker compose logs -f
+
+logs-mariadb:
+	docker compose logs -f mariadb
+
+logs-wordpress:
+	docker compose logs -f wordpress
+
+exec-mariadb:
+	docker compose exec mariadb bash
+
+exec-wordpress:
+	docker compose exec wordpress bash
 
 .PHONY: up down build clean fclean re create_dirs
