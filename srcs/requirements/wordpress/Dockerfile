@@ -1,30 +1,30 @@
-# Base image
-FROM debian:bookworm
+FROM alpine:3.21
 
-ENV DEBIAN_FRONTEND=noninteractive
+RUN apk add --no-cache ca-certificates
 
-# Install PHP 8.2, necessary extensions, WP-CLI dependencies
-RUN apt-get update && apt-get install -y \
-    php8.2-fpm php8.2-mysql php8.2-curl php8.2-zip php8.2-xml \
-    php8.2-gd php8.2-mbstring php8.2-intl php8.2-bcmath \
-    curl wget less mariadb-client \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN cat <<EOF > /etc/apk/repositories
+https://dl-cdn.alpinelinux.org/alpine/v3.21/main
+https://dl-cdn.alpinelinux.org/alpine/v3.21/community
+EOF
 
-# Install WP-CLI
+#Install PHP, MariaDB, WP-CLI dependencies
+RUN apk add --no-cache \
+    php php-fpm php-cli \
+    php-mysqli php-mbstring php-zip php-ctype php-iconv php-phar \
+    mariadb-client curl
+
+#Install WP-CLI
 RUN curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
     && chmod +x /usr/local/bin/wp
 
-# Copy custom PHP-FPM pool configuration
-COPY ./conf/www.conf /etc/php/8.2/fpm/pool.d/www.conf
-# Ensure the PHP runtime socket directory exists
-RUN mkdir -p /run/php
+#Copy custom PHP-FPM pool configuration
+COPY ./conf/www.conf /etc/php83/php-fpm.d/www.conf
 
-# Copy WordPress setup script
+RUN sed -i 's/^memory_limit\s*=.*/memory_limit = 512M/g' /etc/php83/php.ini 
+
 COPY ./tool/wp_setup.sh /wp_setup.sh
 RUN chmod +x /wp_setup.sh
 
-# Set working directory (optional)
-WORKDIR /var/www/html
+EXPOSE 9000
 
-# Start the WordPress setup script
-CMD ["/bin/bash", "/wp_setup.sh"]
+ENTRYPOINT ["/wp_setup.sh"]

@@ -13,14 +13,17 @@ EOF
 #Install MariaDB
 #update package index
 #mariadb server daemon, mariadb-client is command line client to interact with Mariadb
-RUN apk update && \
-    apk add --no-cache mariadb mariadb-client
+RUN apk add --no-cache mariadb mariadb-client
 
-# Copy custom config for MariaDB
-COPY ./conf/custom.cnf /etc/my.cnf.d/custom.cnf
+#replace all matching bind-address to 0.0.0.0, allows connection from any IP
+#comment out all skip-networking to enable TCP connection
+RUN sed -i "s/.*bind-address\s*=.*/bind-address=0.0.0.0/g" /etc/my.cnf.d/mariadb-server.cnf && \
+    sed -i "s/.*skip-networking.*/#skip-networking/g" /etc/my.cnf.d/mariadb-server.cnf
 
-COPY ./tool/mariadb_setup.sh /usr/local/bin/mariadb_setup.sh
-RUN chmod +x /usr/local/bin/mariadb_setup.sh
+#COPY ./tool/my_custom.cnf /etc/my.cnf.d/my_custom.cnf
+
+COPY ./tool/mariadb_setup.sh /mariadb_setup.sh
+RUN chmod +x /mariadb_setup.sh
 
 EXPOSE 3306
-ENTRYPOINT ["/usr/local/bin/mariadb_setup.sh"]
+ENTRYPOINT ["/mariadb_setup.sh"]

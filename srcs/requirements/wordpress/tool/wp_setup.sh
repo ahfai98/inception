@@ -1,65 +1,46 @@
-#!/bin/bash
+#!/bin/sh
+set -e
 
-WP_PATH="/var/www/html/wordpress"
-DB_HOST="${DB_HOST:-mariadb}"
-WAIT_TIMEOUT="${WAIT_TIMEOUT:-60}"  # max wait time in seconds
+#Ensure wordpress path exists
+mkdir -p /var/www/html
 
-echo "[INFO] Waiting for MariaDB at $DB_HOST to be ready..."
+DB_USER_PASSWORD=$(cat /run/secrets/db_user_password)
+WP_USER_PASSWORD=$(cat /run/secrets/wp_user_password)
+WP_ADMIN_PASSWORD=$(cat /run/secrets/wp_admin_password)
 
-SECONDS_WAITED=0
-until mysqladmin ping -h "$DB_HOST" --silent; do
-    if [ $SECONDS_WAITED -ge $WAIT_TIMEOUT ]; then
-        echo "[ERROR] MariaDB did not become ready after $WAIT_TIMEOUT seconds."
-        exit 1
-    fi
-    echo "[INFO] MariaDB not ready yet, sleeping 2 seconds..."
-    sleep 2
-    SECONDS_WAITED=$((SECONDS_WAITED + 2))
+echo "Waiting for mariadb..."
+until mariadb-admin --silent -h mariadb -u ${DB_USER} -p${DB_USER_PASSWORD} ping; do
+    sleep 1
 done
 
-echo "[INFO] MariaDB is up. Continuing WordPress setup..."
+#if wp-config does not exist
+if [ ! -f /var/www/html/wp-config.php ]; then
+    echo "Downloading Wordpress core..."
+    wp core download --path=/var/www/html --allow-root
 
-# Ensure WordPress directory exists
-mkdir -p "$WP_PATH"
+    echo "Creating wp-config.php..."
+    wp config create --path=/var/www/html --allow-root \
+        --dbname=${DB_NAME} \
+        --dbuser=${DB_USER} \
+        --dbpass=${DB_USER_PASSWORD} \
+        --dbhost=mariadb
 
-if [ -z "$(ls -A $WP_PATH)" ]; then
-    echo "[INFO] WordPress directory is empty. Performing first-time setup..."
-    cd "$WP_PATH"
+    echo "Installing Wordpress..."
+    wp core install --path=/var/www/html --allow-root \
+        --url=${WP_DOMAIN} \
+        --title=${WP_TITLE} \
+        --admin_user=${WP_ADMIN} \
+        --admin_password=${WP_ADMIN_PASSWORD} \
+        --admin_email=${WP_ADMIN_EMAIL}
 
-    echo "[INFO] Downloading WordPress core..."
-    wp core download --allow-root
+    echo "Creating Wordpress User..."
+    wp user create --path=/var/www/html --allow-root \
+        ${WP_USER} ${WP_USER_EMAIL} \
+        --user_pass=${WP_USER_PASSWORD} \
+        --role=author
 
-    echo "[INFO] Creating wp-config.php..."
-    if [ ! -f wp-config.php ]; then
-        wp config create \
-            --dbname="$DB_NAME" \
-            --dbuser="$DB_USER" \
-            --dbpass="$DB_USER_PASSWORD" \
-            --dbhost="$DB_HOST" \
-            --skip-check \
-            --allow-root
-    fi
-
-    echo "[INFO] Installing WordPress..."
-    wp core install \
-        --url="$WP_DOMAIN" \
-        --title="$WP_TITLE" \
-        --admin_user="$WP_ADMIN" \
-        --admin_password="$WP_ADMIN_PASSWORD" \
-        --admin_email="$WP_ADMIN_EMAIL" \
-        --skip-email \
-        --allow-root
-
-    echo "[INFO] Creating regular WordPress user..."
-    wp user create "$WP_USER" "$WP_USER_EMAIL" \
-        --user_pass="$WP_USER_PASSWORD" \
-        --role=author \
-        --allow-root
-
-    echo "[INFO] WordPress bootstrap complete."
-else
-    echo "[INFO] WordPress directory already contains files. Skipping installation."
+    echo "Wordpress Installation Done."
 fi
 
-echo "[INFO] Starting PHP-FPM 8.2..."
-exec php-fpm8.2 -F -R
+echo "Starting PHP-FPM 8.3..."
+exec php-fpm83 -F
