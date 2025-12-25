@@ -1,13 +1,26 @@
-FROM debian:bookworm
+FROM alpine:3.21
 
-RUN apt-get update && apt-get install -y mariadb-server && rm -rf /var/lib/apt/lists/*
+#--no-cache avoids caching to keep image small
+#CA Certificates needed to use HTTPS connection
+RUN apk add --no-cache ca-certificates
 
-RUN mkdir -p /run/mysqld && chown -R mysql:mysql /run/mysqld && chmod 755 /run/mysqld
+#Configure APK repositories
+RUN cat <<EOF > /etc/apk/repositories
+https://dl-cdn.alpinelinux.org/alpine/v3.21/main
+https://dl-cdn.alpinelinux.org/alpine/v3.21/community
+EOF
+
+#Install MariaDB
+#update package index
+#mariadb server daemon, mariadb-client is command line client to interact with Mariadb
+RUN apk update && \
+    apk add --no-cache mariadb mariadb-client
+
+# Copy custom config for MariaDB
+COPY ./conf/custom.cnf /etc/my.cnf.d/custom.cnf
+
+COPY ./tool/mariadb_setup.sh /usr/local/bin/mariadb_setup.sh
+RUN chmod +x /usr/local/bin/mariadb_setup.sh
 
 EXPOSE 3306
-
-COPY ./tool/mariadb_setup.sh .
-
-RUN chmod +x mariadb_setup.sh
-
-CMD ["bash", "mariadb_setup.sh"]
+ENTRYPOINT ["/usr/local/bin/mariadb_setup.sh"]

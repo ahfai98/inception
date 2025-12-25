@@ -1,46 +1,41 @@
-#!/bin/bash
+#!/bin/sh
+#exit if any command fails
+set -e
 
-#Initialize MariaDB
-if [ ! -d "/var/lib/mysql/mysql" ]; then
-	echo "Initializing MariaDB ..."
-	mysql_install_db --user=mysql --datadir=/var/lib/mysql
-fi
+#prepare runtime directory /run/mysqld for socket file
+#get write permission for mysql user
+#socket file allows local clients like mariadb CLI to connect without TCP
+#pid file stores process ID of running MariaDB server, used to stop the server
+#these two files are not permanent and are only valid while the server is running
+mkdir -p /run/mysqld
+chown -R mysql:mysql /run/mysqld
 
-#Setup Mariadb
-mariadbd --user=mysql --datadir=/var/lib/mysql --skip-networking &
-pid="$!"
+DB_ROOT_PASSWORD=$(cat /run/secrets/db_root_password)
+DB_USER_PASSWORD=$(cat /run/secrets/db_user_password)
 
-#Wait for MariaDB to be ready
-until [ -S /run/mysqld/mysqld.sock ]; do
-	echo "Waiting for MariaDB to be ready..."
-	sleep 1
-done
+#check if database initialised
+if [ ! -d /var/lib/mysql/mysql ]; then
+    chown -R mysql:mysql /var/lib/mysql
+    mariadb-install-db --user=mysql --datadir=/var/lib/mysql
 
-#Initialise custom database
-# If the database is not initialized, set it up
-if [ ! -d "/var/lib/mysql/${DB_NAME}" ]; then
-    echo "Initializing database..."
-    mariadb -u root <<-EOSQL
-        ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASSWORD';
-        GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
-        CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_USER_PASSWORD';
-        GRANT ALL PRIVILEGES ON *.* TO '$DB_USER'@'localhost' WITH GRANT OPTION;
-        CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_USER_PASSWORD';
-        GRANT ALL PRIVILEGES ON *.* TO '$DB_USER'@'%' WITH GRANT OPTION;
-        CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;
-        FLUSH PRIVILEGES;
-EOSQL
-    #Shutdown Mariadb
-    echo "Shutting down temporary MariaDB instance..."
-    mariadb-admin -u root -p"${DB_ROOT_PASSWORD}" shutdown
-    wait "$pid"
-else
-    echo "Database already exists, skipping initialization..."
-    # Kill the background process
-    kill "$pid"
-    wait "$pid"
+    #start temp mariadb server
+    mariadbd --user=mysql --datadir=/var/lib/mysql &
+    pid=$!
+    until mariadb-admin -u root ping > /dev/null 2>&1; do
+        sleep 1
+    done
+
+    #setup
+    mariadb -e "CREATE DATABASE IF NOT EXISTS  \`${DB_NAME}\`;"
+    mariadb -e "CREATE USER IF NOT EXISTS ${DB_USER} IDENTIFIED BY '${DB_USER_PASSWORD}';"
+    mariadb -e "GRANT ALL PRIVILEGES ON  \`${DB_NAME}\`.* TO ${DB_USER};"
+    mariadb -e "FLUSH PRIVILEGES;"
+    mariadb -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';"
+
+    #Shutdown temp Mariadb server
+    mariadb-admin -u root -p${DB_ROOT_PASSWORD} shutdown
+    wait $pid
 fi
 
 #Start Mariadb in foreground
-echo "Starting MariaDB server..."
-exec mariadbd --user=mysql --datadir=/var/lib/mysql --console
+exec mariadbd --user=mysql --datadir=/var/lib/mysql
