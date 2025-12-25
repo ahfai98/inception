@@ -1,5 +1,6 @@
 services:
   mariadb:
+    image: mariadb
     build:  ./requirements/mariadb/
     env_file: .env
     restart: always
@@ -15,20 +16,39 @@ services:
       - db_user_password
 
   wordpress:
+    image: wordpress
     build:  ./requirements/wordpress/
     env_file: .env
     restart: always
     expose:
       - "9000"
     volumes:
-      - wordpress:/var/www/html/wordpress
+      - wordpress:/var/www/html
     networks:
       - inception
     container_name: wordpress
+    depends_on:
+      - mariadb
     secrets:
       - wp_user_password
       - wp_admin_password
       - db_user_password
+
+  nginx:
+    image: nginx
+    build:  ./requirements/nginx/
+    env_file: .env
+    restart: always
+    ports:
+      - "443:443"
+    volumes:
+      - wordpress:/var/www/html
+    networks:
+      - inception
+    container_name: nginx
+    depends_on:
+      - wordpress
+
 
 volumes:
   mariadb:
