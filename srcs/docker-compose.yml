@@ -7,7 +7,17 @@ services:
       - "3306"
     volumes:
       - mariadb:/var/lib/mysql
+    networks:
+      - inception
     container_name: mariadb
+    secrets:
+      - db_root_password
+      - db_user_password
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MYSQL_PASSWORD_FILE: /run/secrets/db_user_password
+      MYSQL_USER: ${DB_USER}
+      MYSQL_DATABASE: ${DB_NAME}
 
   wordpress:
     build:  ./requirements/wordpress/
@@ -17,8 +27,25 @@ services:
       - "9000"
     volumes:
       - wordpress:/var/www/html/wordpress
+    networks:
+      - inception
     container_name: wordpress
-  
+    secrets:
+      - wp_user_password
+      - wp_admin_password
+    environment:
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/db_user_password
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_HOST: mariadb
+      WORDPRESS_USER: ${WP_USER}
+      WORDPRESS_USER_PASSWORD_FILE: /run/secrets/wp_user_password
+      WORDPRESS_USER_EMAIL: ${WP_USER_EMAIL}
+      WORDPRESS_ADMIN: ${WP_ADMIN}
+      WORDPRESS_ADMIN_PASSWORD_FILE: /run/secrets/wp_admin_password
+      WORDPRESS_ADMIN_EMAIL: ${WP_ADMIN_EMAIL}
+      WORDPRESS_DOMAIN: ${WP_DOMAIN}
+      WORDPRESS_TITLE: ${WP_TITLE}
 
 volumes:
   mariadb:
@@ -35,3 +62,17 @@ volumes:
       type: none
       o: bind
       device: ${DATA_DIR}/wordpress
+
+secrets:
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+  db_user_password:
+    file: ./secrets/db_user_password.txt
+  wp_user_password:
+    file: ./secrets/wp_user_password.txt
+  wp_admin_password:
+    file: ./secrets/wp_admin_password.txt
+
+networks:
+  inception:
+    driver: bridge
