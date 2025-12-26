@@ -11,7 +11,7 @@ export COMPOSE_FILE
 #build images and containers, --build rebuilds image
 #-d detached, --wait waits for all services to become healthy
 up: create_dirs
-	docker compose up --build -d --wait
+	docker compose up --build -d
 
 #stops containers, removes containers, volumes and networks
 down:
@@ -38,13 +38,13 @@ create_dirs:
 	mkdir -p $(DATA_DIR)/mariadb $(DATA_DIR)/wordpress
 
 mariadb: create_dirs
-	docker compose up -d --build mariadb --wait
+	docker compose up -d --build mariadb
 
 wordpress: create_dirs
-	docker compose up -d --build wordpress --wait
+	docker compose up -d --build wordpress
 
 mginx: create_dirs
-	docker compose up -d --build nginx --wait
+	docker compose up -d --build nginx
 
 stop-mariadb:
 	docker compose stop mariadb

@@ -48,7 +48,8 @@ services:
     container_name: nginx
     depends_on:
       - wordpress
-
+    secrets:
+      - db_user_password
 
 volumes:
   mariadb:
