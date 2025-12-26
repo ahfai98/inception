@@ -1,8 +1,8 @@
 *This project has been created as part of the 42 curriculum by jyap.*
 
-==================================================================
+==============
 1. Description
-==================================================================
+===============
 
 The 42 Inception project is designed to deploy a fully functional WordPress website
 using Docker containers, orchestrated with Docker Compose. The project demonstrates
@@ -23,9 +23,9 @@ The deployed stack consists of three main services:
 Persistent storage is implemented using Docker volumes for both MariaDB and WordPress
 to preserve data across container restarts.
 
-==================================================================
+=========================================
 2. Project Structure and Included Sources
-==================================================================
+==========================================
 
 - **requirements/mariadb/**: Dockerfile and `mariadb_setup.sh` script for initializing
   the MariaDB database and managing the root and user credentials.
@@ -43,9 +43,9 @@ to preserve data across container restarts.
 
 - **volumes**: Defined for persistent data storage for WordPress and MariaDB.
 
-==================================================================
+================
 3. Instructions
-==================================================================
+================
 
 Prerequisites:
 - Docker 20+ and Docker Compose installed.
@@ -81,9 +81,9 @@ make logs
 make down
 - Preserves volumes to maintain data.
 
-==================================================================
+============================
 4. Technical Design Choices
-==================================================================
+=============================
 
 **Docker vs Virtual Machines**
 - Docker containers are lightweight, start quickly, and share the host OS kernel.
@@ -110,9 +110,9 @@ to prevent exposing them in `docker inspect`.
 - WordPress container waits for MariaDB to be ready before running installation scripts.
 - MariaDB container initializes system tables and users only if the database is not already set up.
 
-==================================================================
+============
 5. Resources
-==================================================================
+============
 
 - Docker documentation: https://docs.docker.com/
 - Docker Compose documentation: https://docs.docker.com/compose/
@@ -124,9 +124,9 @@ to prevent exposing them in `docker inspect`.
 - AI usage: AI was used to assist in writing documentation, explaining scripts,
 and providing technical recommendations. No AI-generated code was used in production.
 
-==================================================================
+====================
 6. Additional Notes
-==================================================================
+====================
 
 - First-time startup may take longer due to MariaDB system table initialization
 and WordPress installation.
