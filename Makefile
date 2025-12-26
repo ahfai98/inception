@@ -89,8 +89,15 @@ exec-wordpress:
 exec-nginx:
 	docker compose exec nginx sh
 
+nuke:
+	docker stop $$(docker ps -q) 2>/dev/null || true
+	docker rm $$(docker ps -aq) 2>/dev/null || true
+	docker volume rm $$(docker volume ls -q) 2>/dev/null || true
+	docker network rm $$(docker network ls -q) 2>/dev/null || true
+	docker rmi -f $$(docker images -q) 2>/dev/null || true
+
 .PHONY: up down build clean fclean re create_dirs \
         mariadb wordpress nginx stop-mariadb stop-wordpress stop-nginx \
         rebuild-mariadb rebuild-wordpress rebuild-nginx \
         logs logs-mariadb logs-wordpress logs-nginx \
-        exec-mariadb exec-wordpress exec-nginx
+        exec-mariadb exec-wordpress exec-nginx nuke
